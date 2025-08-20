@@ -13,10 +13,10 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navigationItems = [
-    { label: 'Ideias em Votação', path: '/projects', icon: '📊' },
+    { label: 'Ranking IA', path: '/ranking', icon: '🏆' },
+    { label: 'Dashboard', path: '/dashboard', icon: '📊' },
     { label: 'Nova Ideia', path: '/nova-ideia', icon: '💡' },
-    { label: 'Meus Projetos', path: '/meus-projetos', icon: '📁' },
-    { label: 'Ranking', path: '/ranking', icon: '🏆' }
+    { label: 'Relatar Problema', path: '/relatar-problema', icon: '🚨' }
   ];
 
   const handleLogout = () => {
