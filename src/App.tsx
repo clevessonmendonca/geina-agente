@@ -2,8 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthPage from './pages/AuthPage';
-import { IdeiasEmVotao } from './pages/ProjectsPage/ProjectsPage';
-import { NovaIdeiaPage } from './pages/NovaIdeiaPage';
+import ProjectsPage from './pages/ProjectsPage';
+import NovaIdeiaPage from './pages/NovaIdeiaPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -28,7 +28,7 @@ const AppContent: React.FC = () => {
         path="/projects" 
         element={
           <ProtectedRoute>
-            <IdeiasEmVotao />
+            <ProjectsPage />
           </ProtectedRoute>
         } 
       />
