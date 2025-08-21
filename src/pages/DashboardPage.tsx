@@ -25,7 +25,8 @@ import {
   Award,
   Lightbulb,
   CheckCircle,
-  Calendar
+  Calendar,
+  Venus
 } from 'lucide-react';
 
 interface DashboardMetric {
@@ -100,7 +101,7 @@ const DashboardPage: React.FC = () => {
   const getMetrics = (): DashboardMetric[] => {
     if (!dashboardData) return [];
 
-    return [
+    const base: DashboardMetric[] = [
       {
         title: 'Total de Experimentos',
         value: dashboardData.total_experimentos,
@@ -137,6 +138,17 @@ const DashboardPage: React.FC = () => {
         color: 'text-blue-600'
       }
     ];
+    // Inclusão: participação feminina
+    if (dashboardData.inclusao) {
+      base.unshift({
+        title: 'Participação Feminina',
+        value: `${dashboardData.inclusao.percentual_feminino}%`,
+        change: 0,
+        icon: <Venus className="w-6 h-6" />,
+        color: 'text-pink-600'
+      });
+    }
+    return base;
   };
 
   // Dados para gráficos baseados nos dados dinâmicos
@@ -375,6 +387,27 @@ const DashboardPage: React.FC = () => {
 
         {/* Gráficos Adicionais */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Inclusão - Ranking Feminino */}
+          <Card>
+            <h3 className="text-lg font-semibold text-caixa-black mb-4">
+              Mulheres que Transformam
+            </h3>
+            <div className="space-y-3">
+              {dashboardData?.inclusao?.ranking?.slice(0,5).map((exp) => (
+                <div key={exp.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-caixa">
+                  <div>
+                    <h4 className="font-semibold text-caixa-black">{exp.nome_experimento}</h4>
+                    <p className="text-xs text-caixa-gray">{exp.unidade_gestora}</p>
+                  </div>
+                  <span className="px-2 py-1 bg-pink-100 text-pink-700 text-xs rounded-full">♀ Mulher Inovadora</span>
+                </div>
+              ))}
+              {!dashboardData?.inclusao?.ranking?.length && (
+                <p className="text-sm text-caixa-gray">Sem dados de ranking feminino ainda.</p>
+              )}
+            </div>
+          </Card>
+
           {/* Score IA por Categoria */}
           <Card>
             <h3 className="text-lg font-semibold text-caixa-black mb-4">

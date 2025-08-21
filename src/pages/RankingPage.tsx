@@ -41,6 +41,7 @@ const RankingPage: React.FC = () => {
   const [filterCategoria, setFilterCategoria] = useState('');
   const [filterPrioridade, setFilterPrioridade] = useState('');
   const [sortBy, setSortBy] = useState('scoreIA');
+  const [filterMulheres, setFilterMulheres] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [rankedIdeas, setRankedIdeas] = useState<RankedIdea[]>([]);
 
@@ -152,6 +153,11 @@ const RankingPage: React.FC = () => {
   const filteredIdeas = rankedIdeas
     .filter(idea => !filterCategoria || idea.categoria === filterCategoria)
     .filter(idea => !filterPrioridade || idea.prioridade === filterPrioridade)
+    .filter(idea => {
+      if (!filterMulheres) return true;
+      // Badge feminino se presente na lista de tags ou autor com marcador ♀
+      return idea.tags.includes('Mulher Inovadora') || /\b(Maria|Ana|Fernanda|Carla|Patrícia|Juliana)\b/i.test(idea.autor);
+    })
     .sort((a, b) => {
       switch (sortBy) {
         case 'scoreIA':
@@ -249,8 +255,18 @@ const RankingPage: React.FC = () => {
             />
             
             <div className="flex items-end">
-              <div className="text-sm text-caixa-gray">
-                <strong>{filteredIdeas.length}</strong> ideias encontradas
+              <div className="flex items-center space-x-3 w-full justify-between">
+                <label className="inline-flex items-center space-x-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={filterMulheres}
+                    onChange={(e) => setFilterMulheres(e.target.checked)}
+                  />
+                  <span>Ver apenas ideias de mulheres</span>
+                </label>
+                <div className="text-sm text-caixa-gray">
+                  <strong>{filteredIdeas.length}</strong> ideias encontradas
+                </div>
               </div>
             </div>
           </div>
@@ -289,6 +305,10 @@ const RankingPage: React.FC = () => {
                           {tag}
                         </span>
                       ))}
+                      {/* Selo Mulher Inovadora (exibição condicional via heurística ou backend) */}
+                      {(/\b(Maria|Ana|Fernanda|Carla|Patrícia|Juliana)\b/i.test(idea.autor)) && (
+                        <span className="px-2 py-1 bg-pink-100 text-pink-700 text-xs rounded-full">♀ Mulher Inovadora</span>
+                      )}
                     </div>
                   </div>
                   
@@ -307,8 +327,6 @@ const RankingPage: React.FC = () => {
                 <div className="mb-4">
                   <ScoreBreakdown
                     criterios={idea.criterios}
-                    scoreIA={idea.scoreIA}
-                    prioridade={idea.prioridade}
                   />
                 </div>
 

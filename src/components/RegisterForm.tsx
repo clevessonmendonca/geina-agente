@@ -14,6 +14,7 @@ interface RegisterData {
   matricula: string;
   senha: string;
   confirmarSenha: string;
+  genero: 'feminino' | 'masculino' | 'nao_informar';
 }
 
 interface CreateUserResponse {
@@ -33,6 +34,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     matricula: '',
     senha: '',
     confirmarSenha: '',
+    genero: 'nao_informar',
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -87,6 +89,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
           unidade_departamento: formData.unidade_departamento,
           matricula: formData.matricula,
           senha: formData.senha,
+          genero: formData.genero,
         }),
       });
 
@@ -106,6 +109,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
           matricula: '',
           senha: '',
           confirmarSenha: '',
+          genero: 'nao_informar',
         });
       } else {
         const errorMsg = data.message || 'Erro ao criar usuário';
@@ -218,6 +222,25 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
             required
             disabled={isLoading}
           />
+        </div>
+
+        <div>
+          <label htmlFor="genero" className="form-label">
+            Gênero (opcional)
+          </label>
+          <select
+            id="genero"
+            name="genero"
+            value={formData.genero}
+            onChange={(e) => setFormData(prev => ({ ...prev, genero: e.target.value as RegisterData['genero'] }))}
+            className="input-field"
+            disabled={isLoading}
+          >
+            <option value="nao_informar">Prefiro não informar</option>
+            <option value="feminino">Feminino</option>
+            <option value="masculino">Masculino</option>
+          </select>
+          <p className="text-xs text-caixa-gray mt-1">Usado para métricas de inclusão e incentivos.</p>
         </div>
 
         <div>
