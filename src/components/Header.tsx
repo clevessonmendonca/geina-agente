@@ -16,11 +16,16 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
 
   const navigationItems = [
     { label: 'Ranking IA', path: '/ranking', icon: 'trophy' },
-    { label: 'Dashboard', path: '/dashboard', icon: 'chart' },
-    { label: 'Aprovações', path: '/gestao/aprovacoes', icon: 'check' },
+    ...(user?.role === 'gestor'
+      ? [
+          { label: 'Dashboard', path: '/dashboard', icon: 'chart' },
+          { label: 'Aprovações', path: '/gestao/aprovacoes', icon: 'check' }
+        ]
+      : []),
     { label: 'Nova Ideia', path: '/nova-ideia', icon: 'plus' },
     { label: 'Relatar Problema', path: '/relatar-problema', icon: 'alert' }
   ];
+  
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
