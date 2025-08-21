@@ -133,7 +133,7 @@ const IdeiaDetalhesPage: React.FC = () => {
           unidade: experiment.unidade_gestora,
           email: 'usuario@caixa.gov.br' // TODO: Adicionar campo no backend
         },
-        apoios: Math.floor(Math.random() * 50) + 1, // TODO: Implementar sistema real de apoios
+        apoios: experiment.apoios || 0,
         status: 'aprovado',
         dataCriacao: experiment.data_inicio || new Date().toISOString().split('T')[0],
         dataAtualizacao: experiment.data_fim || new Date().toISOString().split('T')[0],

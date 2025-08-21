@@ -76,9 +76,9 @@ export const FormValidationProvider: React.FC<FormValidationProviderProps> = ({ 
     descricao: 'descricao_experimento',
     
     // Informações do proponente
-    nome_proponente: 'nome_proponente',
-    matricula: 'matricula',
-    cgc: 'cgc',
+    proponente_nome: 'nome_proponente',
+    proponente_matricula: 'matricula',
+    proponente_cgc: 'cgc',
     unidade_gestora: 'unidade_gestora',
     
     // Detalhes do experimento
@@ -86,11 +86,28 @@ export const FormValidationProvider: React.FC<FormValidationProviderProps> = ({ 
     hipoteses: 'hipoteses',
     testes_hipoteses: 'testes_hipoteses',
     horizonte_inovacao: 'horizonte_inovacao',
+    volume_impacto: 'volume_impacto',
     
     // Métricas e resultados
     baseline: 'baseline',
     resultados_esperados: 'resultados_esperados',
     metricas_kpis: 'metricas_kpis',
+    
+    // Cronograma
+    data_inicio: 'data_inicio',
+    data_fim: 'data_fim',
+    
+    // Termos
+    termos_recursos_unidade: 'termos_recursos_unidade',
+    termos_registro_perdas: 'termos_registro_perdas',
+    termos_notificacao_geina: 'termos_notificacao_geina',
+    termos_relatorios: 'termos_relatorios',
+    aceito_termos: 'aceito_termos',
+    
+    // Assinatura
+    local_assinatura: 'local_assinatura',
+    data_assinatura: 'data_assinatura',
+    gestor_unidade: 'gestor_unidade',
     
     // Impacto e estratégia
     diretrizes_estrategicas: 'diretrizes_estrategicas',
@@ -184,6 +201,34 @@ export const FormValidationProvider: React.FC<FormValidationProviderProps> = ({ 
       case 'prazo': {
         const prazo = String(fieldValue);
         return prazo.length >= 3 && /(mes|mês|ano|semana|dia)/i.test(prazo);
+      }
+
+      case 'proponente_nome':
+      case 'proponente_matricula':
+      case 'proponente_cgc':
+      case 'unidade_gestora':
+      case 'desafio':
+      case 'hipoteses':
+      case 'horizonte_inovacao':
+      case 'volume_impacto':
+      case 'baseline':
+      case 'resultados_esperados':
+      case 'metricas_kpis':
+      case 'data_inicio':
+      case 'data_fim':
+      case 'local_assinatura':
+      case 'data_assinatura':
+      case 'gestor_unidade': {
+        const value = String(fieldValue);
+        return value.length >= 2 && value.trim() !== '';
+      }
+
+      case 'termos_recursos_unidade':
+      case 'termos_registro_perdas':
+      case 'termos_notificacao_geina':
+      case 'termos_relatorios':
+      case 'aceito_termos': {
+        return typeof fieldValue === 'boolean' && fieldValue === true;
       }
 
       default:
