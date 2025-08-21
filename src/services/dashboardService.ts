@@ -31,6 +31,13 @@ export interface DashboardData {
     categoria: string;
     proponente_nome: string;
   }>;
+  // Inclusão
+  inclusao?: {
+    percentual_feminino: number;
+    total_experimentos: number;
+    experimentos_femininos: number;
+    ranking?: Array<{ id: number; nome_experimento: string; unidade_gestora: string; data_inicio?: string }>;
+  };
 }
 
 export interface DashboardMetric {
@@ -82,7 +89,26 @@ class DashboardService {
         throw new Error(response.error);
       }
       
-      return response as DashboardData;
+      const dashboard = response as DashboardData;
+      // Busca métricas de participação feminina
+      try {
+        const metrics = await this.makeRequest<{
+          total_experimentos: number;
+          experimentos_femininos: number;
+          percentual_feminino: number;
+          status: string;
+        }>(`/metrics/female-participation`);
+        const ranking = await this.makeRequest<{ experimentos: Array<{ id: number; nome_experimento: string; unidade_gestora: string; data_inicio?: string }>; total: number; status: string }>(`/metrics/female-ranking`);
+        dashboard.inclusao = {
+          percentual_feminino: metrics.percentual_feminino,
+          total_experimentos: metrics.total_experimentos,
+          experimentos_femininos: metrics.experimentos_femininos,
+          ranking: ranking.experimentos,
+        };
+      } catch (e) {
+        // Silencia falhas de métricas de inclusão
+      }
+      return dashboard;
     } catch (error) {
       console.error('Erro ao buscar dados do dashboard:', error);
       // Retornar dados mock apenas em caso de erro real

@@ -5,6 +5,7 @@ export interface User {
   email: string;
   cargo?: string;
   unidade?: string;
+  genero?: 'feminino' | 'masculino' | 'nao_informar';
   status?: string;
 }
 

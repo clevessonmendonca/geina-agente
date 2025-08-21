@@ -13,6 +13,7 @@ import { useToast } from '../contexts/ToastContext';
 import { validatorService } from '../services/validatorService';
 import type { ValidatorResponse } from '../services/validatorService';
 import { experimentService } from '../services/experimentService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface StepperFormData {
   // Informações do proponente
@@ -55,6 +56,7 @@ interface StepperFormData {
 
 const NovaIdeiaPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { updateFormData } = useFormValidation();
   const { showToast } = useToast();
   const [isBasicValidated, setIsBasicValidated] = useState(false);
@@ -228,6 +230,11 @@ const NovaIdeiaPage: React.FC = () => {
           <p className="text-caixa-gray">
             Compartilhe sua ideia de inovação com a CAIXA
           </p>
+          {user?.genero === 'feminino' && (
+            <div className="mt-3 p-3 rounded-caixa bg-pink-50 text-pink-700 text-sm">
+              Sua ideia fortalece a inovação e diversidade na CAIXA 💜
+            </div>
+          )}
         </div>
 
         {!isBasicValidated && (

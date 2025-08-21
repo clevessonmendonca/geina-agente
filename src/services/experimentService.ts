@@ -27,6 +27,7 @@ export interface Experiment {
   criador_nome?: string;
   time_membros?: TeamMember[];
   riscos?: Risk[];
+  experimento_feminino?: boolean;
   // Campos de score de IA
   score_ia?: number;
   score_impacto?: number;
