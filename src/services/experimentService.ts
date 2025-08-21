@@ -28,6 +28,7 @@ export interface Experiment {
   time_membros?: TeamMember[];
   riscos?: Risk[];
   experimento_feminino?: boolean;
+  user_id?: number; // ID do usuário que criou o experimento
   // Campos de score de IA
   score_ia?: number;
   score_impacto?: number;
@@ -115,10 +116,22 @@ class ExperimentService {
   ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     
+    // Obter token de autenticação do localStorage, se disponível
+    const userJson = localStorage.getItem('hacktoon_user');
+    const user = userJson ? JSON.parse(userJson) : null;
+    const token = user?.token;
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Adicionar token de autenticação se disponível
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const defaultOptions: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       ...options,
     };
 
@@ -149,7 +162,14 @@ class ExperimentService {
   async listUserExperiments(userId?: number): Promise<ExperimentListResponse> {
     const params = new URLSearchParams();
     if (userId) {
+      // Tentando com diferentes parâmetros possíveis para identificar o criador
+      params.append('criador_id', userId.toString());
       params.append('user_id', userId.toString());
+      
+      console.log(`Buscando experimentos para o usuário ID: ${userId}`);
+      console.log(`URL da requisição: /experiments/list?${params.toString()}`);
+    } else {
+      console.warn('listUserExperiments chamado sem ID de usuário');
     }
     
     return this.makeRequest<ExperimentListResponse>(`/experiments/list?${params.toString()}`);

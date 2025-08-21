@@ -13,6 +13,7 @@ interface RankedIdea {
   id: string;
   titulo: string;
   descricao: string;
+  usuario_id: string;
   categoria: string;
   autor: string;
   apoios: number;
@@ -20,7 +21,6 @@ interface RankedIdea {
   dataCriacao: string;
   impacto: string;
   viabilidade: string;
-  // Critérios de priorização da IA
   scoreIA: number;
   prioridade: 'alta' | 'media' | 'baixa';
   criterios: {
@@ -33,7 +33,10 @@ interface RankedIdea {
   tags: string[];
   tempoEstimado: string;
   recursosNecessarios: string;
+  autorGenero?: 'feminino' | 'masculino' | 'nao_informar';
+  criador_role_id?: number;
 }
+
 
 const RankingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -53,14 +56,24 @@ const RankingPage: React.FC = () => {
     try {
       setIsLoading(true);
       const response = await experimentService.listAllExperiments();
-      
+      console.log(response);
+
       // Converter experimentos para o formato de ranking com IA usando dados reais da API
+      // Dentro do loadIdeas()
       const convertedIdeas: RankedIdea[] = response.experiments.map(exp => {
-        // Usar scores calculados pela IA no backend
         const scoreIA = exp.score_ia || 50.0;
         const prioridade = exp.prioridade_ia || 'baixa';
         const categoria = exp.categoria_ia || 'outros';
         const tags = exp.tags_ia ? exp.tags_ia.split(', ') : ['Inovação'];
+        // Definir o gênero do autor com base no campo experimento_feminino da API
+        let autorGenero: 'feminino' | 'masculino' | 'nao_informar' = 'nao_informar';
+        if (exp.experimento_feminino === true) {
+          autorGenero = 'feminino';
+        } else if (exp.tags_ia?.includes('Mulher Inovadora')) {
+          // Fallback para a tag se o campo experimento_feminino não estiver disponível
+          autorGenero = 'feminino';
+        }
+        
 
         return {
           id: exp.id.toString(),
@@ -72,8 +85,7 @@ const RankingPage: React.FC = () => {
           status: (exp.status_experimento || 'em_triagem') as 'em_triagem' | 'em_execucao' | 'aprovada' | 'rejeitada' | 'implementada' | 'cancelada',
           dataCriacao: exp.data_inicio || new Date().toISOString().split('T')[0],
           impacto: exp.volume_impacto?.toLowerCase() || 'medio',
-          viabilidade: exp.horizonte_inovacao === 'H1' ? 'alta' : 
-                      exp.horizonte_inovacao === 'H2' ? 'media' : 'baixa',
+          viabilidade: exp.horizonte_inovacao === 'H1' ? 'alta' : exp.horizonte_inovacao === 'H2' ? 'media' : 'baixa',
           scoreIA,
           prioridade: prioridade as 'alta' | 'media' | 'baixa',
           criterios: {
@@ -84,11 +96,12 @@ const RankingPage: React.FC = () => {
             inovacao: exp.score_inovacao || 50.0
           },
           tags,
-          tempoEstimado: exp.horizonte_inovacao === 'H1' ? '3 meses' : 
-                        exp.horizonte_inovacao === 'H2' ? '6 meses' : '12 meses',
-          recursosNecessarios: `Equipe de ${exp.time_membros?.length || 1} pessoas`
+          tempoEstimado: exp.horizonte_inovacao === 'H1' ? '3 meses' : exp.horizonte_inovacao === 'H2' ? '6 meses' : '12 meses',
+          recursosNecessarios: `Equipe de ${exp.time_membros?.length || 1} pessoas`,
+          autorGenero // novo campo
         };
       });
+
 
       setRankedIdeas(convertedIdeas);
     } catch (error) {
@@ -155,8 +168,8 @@ const RankingPage: React.FC = () => {
     .filter(idea => !filterPrioridade || idea.prioridade === filterPrioridade)
     .filter(idea => {
       if (!filterMulheres) return true;
-      // Badge feminino se presente na lista de tags ou autor com marcador ♀
-      return idea.tags.includes('Mulher Inovadora') || /\b(Maria|Ana|Fernanda|Carla|Patrícia|Juliana)\b/i.test(idea.autor);
+      // Filtrar por gênero feminino usando o campo autorGenero
+      return idea.autorGenero === 'feminino' || idea.tags.includes('Mulher Inovadora');
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -198,7 +211,7 @@ const RankingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -210,7 +223,7 @@ const RankingPage: React.FC = () => {
                 Ideias priorizadas por inteligência artificial baseada em critérios estratégicos
               </p>
             </div>
-            
+
             <div className="flex space-x-3 mt-4 md:mt-0">
               <Link
                 to="/relatar-problema"
@@ -239,21 +252,21 @@ const RankingPage: React.FC = () => {
               value={filterCategoria}
               onChange={setFilterCategoria}
             />
-            
+
             <Select
               label="Prioridade IA"
               options={prioridades}
               value={filterPrioridade}
               onChange={setFilterPrioridade}
             />
-            
+
             <Select
               label="Ordenar por"
               options={sortOptions}
               value={sortBy}
               onChange={setSortBy}
             />
-            
+
             <div className="flex items-end">
               <div className="flex items-center space-x-3 w-full justify-between">
                 <label className="inline-flex items-center space-x-2 text-sm">
@@ -280,9 +293,9 @@ const RankingPage: React.FC = () => {
               <div className="absolute -top-3 -left-3 w-12 h-12 bg-caixa-orange rounded-full flex items-center justify-center text-caixa-white font-bold text-lg shadow-lg">
                 #{index + 1}
               </div>
-              
+
               <div className="ml-8">
-                                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
                       <h3 className="text-xl font-semibold text-caixa-black">
@@ -293,11 +306,11 @@ const RankingPage: React.FC = () => {
                         <span className="ml-1 capitalize">{idea.prioridade}</span>
                       </div>
                     </div>
-                    
+
                     <p className="text-caixa-gray mb-3">
                       {idea.descricao}
                     </p>
-                    
+
                     {/* Tags */}
                     <div className="flex flex-wrap gap-2 mb-3">
                       {idea.tags.map((tag, tagIndex) => (
@@ -305,13 +318,13 @@ const RankingPage: React.FC = () => {
                           {tag}
                         </span>
                       ))}
-                      {/* Selo Mulher Inovadora (exibição condicional via heurística ou backend) */}
-                      {(/\b(Maria|Ana|Fernanda|Carla|Patrícia|Juliana)\b/i.test(idea.autor)) && (
+                      {/* Selo Mulher Inovadora (exibição baseada no campo autorGenero) */}
+                      {idea.autorGenero === 'feminino' && (
                         <span className="px-2 py-1 bg-pink-100 text-pink-700 text-xs rounded-full">♀ Mulher Inovadora</span>
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Score IA */}
                   <div className="lg:ml-6 mb-4 lg:mb-0">
                     <div className="text-center">
@@ -352,17 +365,17 @@ const RankingPage: React.FC = () => {
                     <span>👤 {idea.autor}</span>
                     <span>📅 {new Date(idea.dataCriacao).toLocaleDateString('pt-BR')}</span>
                   </div>
-                  
+
                   <div className="flex space-x-2">
-                    <button 
+                    <button
                       onClick={async () => {
                         try {
                           const result = await experimentService.supportExperiment(parseInt(idea.id));
                           if (result.success) {
                             // Atualizar a lista de ideias com o novo número de apoios
-                            setRankedIdeas(prevIdeas => 
-                              prevIdeas.map(prevIdea => 
-                                prevIdea.id === idea.id 
+                            setRankedIdeas(prevIdeas =>
+                              prevIdeas.map(prevIdea =>
+                                prevIdea.id === idea.id
                                   ? { ...prevIdea, apoios: result.total_apoios }
                                   : prevIdea
                               )
@@ -378,7 +391,7 @@ const RankingPage: React.FC = () => {
                     >
                       Apoiar
                     </button>
-                    <button 
+                    <button
                       onClick={() => navigate(`/ideia/${idea.id}`)}
                       className="px-4 py-2 text-sm font-semibold text-caixa-gray border border-gray-300 rounded-caixa hover:bg-gray-50 transition-colors duration-200"
                     >

@@ -10,6 +10,7 @@ import RelatarProblemaPage from './pages/RelatarProblemaPage';
 import IdeiaDetalhesPage from './pages/IdeiaDetalhesPage';
 import ProfilePage from './pages/ProfilePage';
 import GestorAprovacoesPage from './pages/GestorAprovacoesPage';
+import MinhasIdeiasPage from './pages/MinhasIdeiasPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode, requireGestor?: boolean }> = ({ children, requireGestor = false }) => {
   const { user } = useAuth();
@@ -55,6 +56,14 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/minhas-ideias" 
+        element={
+          <ProtectedRoute>
+            <MinhasIdeiasPage />
           </ProtectedRoute>
         } 
       />
