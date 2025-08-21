@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer } from 'react';
 import type { ReactNode } from 'react';
 import type { AuthContextType, AuthState, LoginCredentials, RegisterData, User } from '../types/authTypes';
+import { ApiService } from '../lib/api';
 
 // Estado inicial
 const initialState: AuthState = {
@@ -76,9 +77,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     dispatch({ type: 'LOGIN_START' });
     
     try {
-      // Simulação de API - substituir por chamada real
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       // Validação básica
       if (!credentials.matricula || !credentials.senha) {
         throw new Error('Matrícula e senha são obrigatórias');
@@ -88,20 +86,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error('Matrícula deve ter pelo menos 6 dígitos');
       }
       
-      // Mock de usuário - substituir por resposta da API
-      const mockUser: User = {
-        id: '1',
-        matricula: credentials.matricula,
-        nome: 'João Silva',
-        email: 'joao.silva@caixa.gov.br',
-        cargo: 'Analista',
-        unidade: 'GEINA',
+      // Chamada real para a API
+      const response = await ApiService.login(credentials);
+      
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Erro ao fazer login');
+      }
+      
+      // Mapear resposta da API para o tipo User
+      const apiUser = response.data;
+      
+      // Verificar se o login foi válido
+      if (!apiUser.isValid) {
+        throw new Error(apiUser.message || 'Login inválido');
+      }
+      
+      const user: User = {
+        id: apiUser.usuario?.user_id?.toString() || '1',
+        matricula: apiUser.usuario?.matricula || credentials.matricula,
+        nome: apiUser.usuario?.nome || 'Usuário',
+        email: apiUser.usuario?.email || '',
+        cargo: apiUser.usuario?.cargo || '',
+        unidade: apiUser.usuario?.unidade || '',
         tipo: 'funcionario',
         status: 'ativo',
         dataCadastro: new Date().toISOString(),
       };
       
-      dispatch({ type: 'LOGIN_SUCCESS', payload: mockUser });
+      dispatch({ type: 'LOGIN_SUCCESS', payload: user });
     } catch (error) {
       dispatch({ 
         type: 'LOGIN_FAILURE', 
@@ -114,9 +126,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     dispatch({ type: 'REGISTER_START' });
     
     try {
-      // Simulação de API - substituir por chamada real
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       // Validações
       if (data.senha !== data.confirmarSenha) {
         throw new Error('As senhas não coincidem');
@@ -130,20 +139,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error('Matrícula deve ter pelo menos 6 dígitos');
       }
       
-      // Mock de usuário - substituir por resposta da API
-      const mockUser: User = {
-        id: '2',
+      // Preparar dados para a API
+      const userData = {
         matricula: data.matricula,
-        nome: data.nome,
+        nome_completo: data.nome,
         email: data.email,
         cargo: data.cargo,
-        unidade: data.unidade,
+        unidade_departamento: data.unidade,
+        senha: data.senha,
+      };
+      
+      // Chamada real para a API
+      const response = await ApiService.register(userData);
+      
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Erro ao fazer cadastro');
+      }
+      
+      // Mapear resposta da API para o tipo User
+      const apiUser = response.data;
+      const user: User = {
+        id: apiUser.usuario?.user_id?.toString() || '2',
+        matricula: apiUser.usuario?.matricula || data.matricula,
+        nome: apiUser.usuario?.nome || data.nome,
+        email: apiUser.usuario?.email || data.email,
+        cargo: apiUser.usuario?.cargo || data.cargo,
+        unidade: apiUser.usuario?.unidade || data.unidade,
         tipo: 'funcionario',
-        status: 'pendente', // Aguardando aprovação do gestor
+        status: apiUser.usuario?.status ? 'ativo' : 'pendente',
         dataCadastro: new Date().toISOString(),
       };
       
-      dispatch({ type: 'REGISTER_SUCCESS', payload: mockUser });
+      dispatch({ type: 'REGISTER_SUCCESS', payload: user });
     } catch (error) {
       dispatch({ 
         type: 'REGISTER_FAILURE', 
