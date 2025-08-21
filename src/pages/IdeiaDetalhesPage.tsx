@@ -235,14 +235,25 @@ const IdeiaDetalhesPage: React.FC = () => {
 
 
 
-  const handleApoiar = () => {
+  const handleApoiar = async () => {
     if (!ideia) return;
     
-    setIdeia(prev => prev ? {
-      ...prev,
-      apoios: prev.userApoiou ? prev.apoios - 1 : prev.apoios + 1,
-      userApoiou: !prev.userApoiou
-    } : null);
+    try {
+      const result = await experimentService.supportExperiment(parseInt(ideia.id));
+      
+      if (result.success) {
+        setIdeia(prev => prev ? {
+          ...prev,
+          apoios: result.total_apoios,
+          userApoiou: true
+        } : null);
+        
+        showToast('Apoio registrado com sucesso!', 'success');
+      }
+    } catch (error) {
+      console.error('Erro ao apoiar:', error);
+      showToast('Erro ao registrar apoio. Tente novamente.', 'error');
+    }
   };
 
   const handleAddComment = (content: string) => {

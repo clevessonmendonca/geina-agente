@@ -230,7 +230,7 @@ const ProjectsPage: React.FC = () => {
                 
                 <div className="flex space-x-2">
                   <button className="px-4 py-2 text-sm font-semibold text-caixa-blue border border-caixa-blue rounded-caixa hover:bg-caixa-blue hover:text-caixa-white transition-colors duration-200">
-                    Votar
+                    Apoiar
                   </button>
                   <button className="px-4 py-2 text-sm font-semibold text-caixa-gray border border-gray-300 rounded-caixa hover:bg-gray-50 transition-colors duration-200">
                     Detalhes

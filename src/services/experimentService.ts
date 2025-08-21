@@ -41,6 +41,8 @@ export interface Experiment {
   data_calculo_ia?: string;
   // Status do experimento
   status_experimento?: string;
+  // Apoios
+  apoios?: number;
 }
 
 export interface TeamMember {
@@ -175,6 +177,14 @@ class ExperimentService {
     return this.makeRequest<ExperimentResponse>(`/experiments/${experimentId}`, {
       method: 'DELETE',
     });
+  }
+
+  // Apoiar experimento
+  async supportExperiment(experimentId: number): Promise<{ success: boolean; total_apoios: number }> {
+    const response = await this.makeRequest<{ success: boolean; total_apoios: number }>(`/experiments/${experimentId}/support`, {
+      method: 'POST',
+    });
+    return response;
   }
 }
 
