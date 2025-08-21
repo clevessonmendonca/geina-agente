@@ -1,17 +1,19 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { FormValidationProvider } from './contexts/FormValidationContext';
+import { ToastProvider } from './contexts/ToastContext';
 import AuthPage from './pages/AuthPage';
 import RankingPage from './pages/RankingPage';
 import DashboardPage from './pages/DashboardPage';
 import NovaIdeiaPage from './pages/NovaIdeiaPage';
 import RelatarProblemaPage from './pages/RelatarProblemaPage';
 import IdeiaDetalhesPage from './pages/IdeiaDetalhesPage';
+import ProfilePage from './pages/ProfilePage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
   
-  if (!isAuthenticated) {
+  if (!user) {
     return <Navigate to="/auth" replace />;
   }
   
@@ -19,13 +21,13 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
 
   return (
     <Routes>
       <Route 
         path="/auth" 
-        element={isAuthenticated ? <Navigate to="/ranking" replace /> : <AuthPage />} 
+        element={user ? <Navigate to="/ranking" replace /> : <AuthPage />} 
       />
       <Route 
         path="/ranking" 
@@ -40,6 +42,14 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
           </ProtectedRoute>
         } 
       />
@@ -69,7 +79,7 @@ const AppContent: React.FC = () => {
       />
       <Route 
         path="/" 
-        element={<Navigate to={isAuthenticated ? "/ranking" : "/auth"} replace />} 
+        element={<Navigate to={user ? "/dashboard" : "/auth"} replace />} 
       />
     </Routes>
   );
@@ -78,11 +88,16 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <Router>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <FormValidationProvider>
+            <AppContent />
+          </FormValidationProvider>
+        </AuthProvider>
+      </ToastProvider>
     </Router>
   );
 };
 
 export default App;
+

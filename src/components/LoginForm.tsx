@@ -19,7 +19,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
       [name]: value,
     }));
     
-    // Limpar erro quando o usuário começar a digitar
     if (error) {
       clearError();
     }
@@ -27,24 +26,20 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(formData);
+    const success = await login(formData);
+    if (success) {
+      console.log('Login realizado com sucesso');
+    }
   };
 
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="text-center mb-8">
         <div className="flex justify-center mb-4">
-          {/* Logo da Caixa - placeholder */}
-          <div className="w-16 h-16 bg-caixa-blue rounded-lg flex items-center justify-center">
-            <span className="text-caixa-white font-bold text-xl">CAIXA</span>
-          </div>
+          <h1 className="text-2xl font-bold text-caixa-black mb-2">
+            CalvinAI
+          </h1>
         </div>
-        <h2 className="text-2xl font-bold text-caixa-black mb-2">
-          Acesso ao Hacktoon
-        </h2>
-        <p className="text-caixa-gray">
-          Entre com sua matrícula CAIXA
-        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

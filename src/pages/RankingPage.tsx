@@ -3,7 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Select from '../components/Select';
-import { TrendingUp, Users, Target, Zap, Star, Clock, Award } from 'lucide-react';
+import { Target, Zap, Star, Clock } from 'lucide-react';
+import { experimentService } from '../services/experimentService';
+import { useToast } from '../contexts/ToastContext';
+
+import ScoreBreakdown from '../components/ScoreBreakdown';
 
 interface RankedIdea {
   id: string;
@@ -12,7 +16,7 @@ interface RankedIdea {
   categoria: string;
   autor: string;
   apoios: number;
-  status: 'em-votacao' | 'aprovado' | 'rejeitado' | 'implementado';
+  status: 'em_triagem' | 'em_execucao' | 'aprovada' | 'rejeitada' | 'implementada' | 'cancelada';
   dataCriacao: string;
   impacto: string;
   viabilidade: string;
@@ -33,110 +37,66 @@ interface RankedIdea {
 
 const RankingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [filterCategoria, setFilterCategoria] = useState('');
   const [filterPrioridade, setFilterPrioridade] = useState('');
   const [sortBy, setSortBy] = useState('scoreIA');
   const [isLoading, setIsLoading] = useState(true);
+  const [rankedIdeas, setRankedIdeas] = useState<RankedIdea[]>([]);
 
-  // Mock data com critérios de priorização da IA
-  const rankedIdeas: RankedIdea[] = [
-    {
-      id: '1',
-      titulo: 'Sistema de IA para Detecção de Fraudes em Tempo Real',
-      descricao: 'Implementação de sistema de inteligência artificial que analisa transações em tempo real para detectar padrões suspeitos e prevenir fraudes, reduzindo perdas em até 80%.',
-      categoria: 'tecnologia',
-      autor: 'Maria Silva',
-      apoios: 45,
-      status: 'em-votacao',
-      dataCriacao: '2024-01-15',
-      impacto: 'critico',
-      viabilidade: 'alta',
-      scoreIA: 94.5,
-      prioridade: 'alta',
-      criterios: {
-        impacto: 95,
-        viabilidade: 85,
-        urgencia: 90,
-        alcance: 88,
-        inovacao: 92
-      },
-      tags: ['IA', 'Segurança', 'Fraude', 'Tempo Real'],
-      tempoEstimado: '6 meses',
-      recursosNecessarios: 'Equipe de 8 pessoas, R$ 2.5M'
-    },
-    {
-      id: '2',
-      titulo: 'App Mobile para Atendimento Prioritário com IA',
-      descricao: 'Aplicativo mobile com inteligência artificial para agendamento inteligente de atendimento, reduzindo filas em 70% e melhorando a experiência do cliente.',
-      categoria: 'atendimento',
-      autor: 'João Santos',
-      apoios: 32,
-      status: 'aprovado',
-      dataCriacao: '2024-01-10',
-      impacto: 'alto',
-      viabilidade: 'alta',
-      scoreIA: 89.2,
-      prioridade: 'alta',
-      criterios: {
-        impacto: 88,
-        viabilidade: 92,
-        urgencia: 85,
-        alcance: 90,
-        inovacao: 87
-      },
-      tags: ['Mobile', 'IA', 'Atendimento', 'UX'],
-      tempoEstimado: '4 meses',
-      recursosNecessarios: 'Equipe de 6 pessoas, R$ 1.8M'
-    },
-    {
-      id: '3',
-      titulo: 'Processo Digital de Abertura de Contas com Blockchain',
-      descricao: 'Automação completa do processo de abertura de contas usando blockchain para validação de documentos, eliminando papel e reduzindo tempo em 70%.',
-      categoria: 'processos',
-      autor: 'Ana Costa',
-      apoios: 28,
-      status: 'em-votacao',
-      dataCriacao: '2024-01-12',
-      impacto: 'critico',
-      viabilidade: 'media',
-      scoreIA: 82.7,
-      prioridade: 'media',
-      criterios: {
-        impacto: 92,
-        viabilidade: 75,
-        urgencia: 80,
-        alcance: 85,
-        inovacao: 78
-      },
-      tags: ['Blockchain', 'Digitalização', 'Processos', 'Documentos'],
-      tempoEstimado: '8 meses',
-      recursosNecessarios: 'Equipe de 10 pessoas, R$ 3.2M'
-    },
-    {
-      id: '4',
-      titulo: 'Sistema de Gestão de Energia Sustentável com IoT',
-      descricao: 'Implementação de sistema IoT para monitoramento e otimização do consumo de energia nas agências, promovendo sustentabilidade e reduzindo custos.',
-      categoria: 'sustentabilidade',
-      autor: 'Carlos Lima',
-      apoios: 22,
-      status: 'em-votacao',
-      dataCriacao: '2024-01-14',
-      impacto: 'medio',
-      viabilidade: 'alta',
-      scoreIA: 78.4,
-      prioridade: 'media',
-      criterios: {
-        impacto: 75,
-        viabilidade: 88,
-        urgencia: 70,
-        alcance: 80,
-        inovacao: 82
-      },
-      tags: ['IoT', 'Sustentabilidade', 'Energia', 'Monitoramento'],
-      tempoEstimado: '5 meses',
-      recursosNecessarios: 'Equipe de 5 pessoas, R$ 1.5M'
+  useEffect(() => {
+    loadIdeas();
+  }, []);
+
+  const loadIdeas = async () => {
+    try {
+      setIsLoading(true);
+      const response = await experimentService.listAllExperiments();
+      
+      // Converter experimentos para o formato de ranking com IA usando dados reais da API
+      const convertedIdeas: RankedIdea[] = response.experiments.map(exp => {
+        // Usar scores calculados pela IA no backend
+        const scoreIA = exp.score_ia || 50.0;
+        const prioridade = exp.prioridade_ia || 'baixa';
+        const categoria = exp.categoria_ia || 'outros';
+        const tags = exp.tags_ia ? exp.tags_ia.split(', ') : ['Inovação'];
+
+        return {
+          id: exp.id.toString(),
+          titulo: exp.nome_experimento || 'Título não especificado',
+          descricao: exp.descricao || 'Descrição não especificada',
+          categoria,
+          autor: exp.criador_nome || 'Usuário',
+          apoios: Math.floor(Math.random() * 50) + 1, // TODO: Implementar sistema real de apoios
+          status: (exp.status_experimento || 'em_triagem') as 'em_triagem' | 'em_execucao' | 'aprovada' | 'rejeitada' | 'implementada' | 'cancelada',
+          dataCriacao: exp.data_inicio || new Date().toISOString().split('T')[0],
+          impacto: exp.volume_impacto?.toLowerCase() || 'medio',
+          viabilidade: exp.horizonte_inovacao === 'H1' ? 'alta' : 
+                      exp.horizonte_inovacao === 'H2' ? 'media' : 'baixa',
+          scoreIA,
+          prioridade: prioridade as 'alta' | 'media' | 'baixa',
+          criterios: {
+            impacto: exp.score_impacto || 50.0,
+            viabilidade: exp.score_viabilidade || 50.0,
+            urgencia: exp.score_urgencia || 50.0,
+            alcance: exp.score_alcance || 50.0,
+            inovacao: exp.score_inovacao || 50.0
+          },
+          tags,
+          tempoEstimado: exp.horizonte_inovacao === 'H1' ? '3 meses' : 
+                        exp.horizonte_inovacao === 'H2' ? '6 meses' : '12 meses',
+          recursosNecessarios: `Equipe de ${exp.time_membros?.length || 1} pessoas`
+        };
+      });
+
+      setRankedIdeas(convertedIdeas);
+    } catch (error) {
+      console.error('Erro ao carregar ideias:', error);
+      showToast('Erro ao carregar ideias. Tente novamente.', 'error', 5000);
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
 
   const categorias = [
     { value: '', label: 'Todas as categorias' },
@@ -162,15 +122,6 @@ const RankingPage: React.FC = () => {
     { value: 'apoios', label: 'Mais Apoiados' },
     { value: 'data', label: 'Mais Recentes' }
   ];
-
-  useEffect(() => {
-    // Simular carregamento da IA
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const getPrioridadeColor = (prioridade: string) => {
     switch (prioridade) {
@@ -205,12 +156,14 @@ const RankingPage: React.FC = () => {
       switch (sortBy) {
         case 'scoreIA':
           return b.scoreIA - a.scoreIA;
-        case 'impacto':
+        case 'impacto': {
           const impactoOrder = { critico: 4, alto: 3, medio: 2, baixo: 1 };
           return impactoOrder[b.impacto as keyof typeof impactoOrder] - impactoOrder[a.impacto as keyof typeof impactoOrder];
-        case 'viabilidade':
+        }
+        case 'viabilidade': {
           const viabilidadeOrder = { 'muito-alta': 4, alta: 3, media: 2, baixa: 1 };
           return viabilidadeOrder[b.viabilidade as keyof typeof viabilidadeOrder] - viabilidadeOrder[a.viabilidade as keyof typeof viabilidadeOrder];
+        }
         case 'apoios':
           return b.apoios - a.apoios;
         case 'data':
@@ -257,14 +210,14 @@ const RankingPage: React.FC = () => {
                 to="/relatar-problema"
                 className="btn-secondary inline-flex items-center"
               >
-                <span className="mr-2">🚨</span>
+                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
                 Relatar Problema
               </Link>
               <Link
                 to="/nova-ideia"
                 className="btn-primary inline-flex items-center"
               >
-                <span className="mr-2">💡</span>
+                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 Nova Ideia
               </Link>
             </div>
@@ -313,7 +266,7 @@ const RankingPage: React.FC = () => {
               </div>
               
               <div className="ml-8">
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
+                                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
                       <h3 className="text-xl font-semibold text-caixa-black">
@@ -350,28 +303,13 @@ const RankingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Critérios da IA */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 p-4 bg-gray-50 rounded-caixa">
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-caixa-black">{idea.criterios.impacto}%</div>
-                    <div className="text-xs text-caixa-gray">Impacto</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-caixa-black">{idea.criterios.viabilidade}%</div>
-                    <div className="text-xs text-caixa-gray">Viabilidade</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-caixa-black">{idea.criterios.urgencia}%</div>
-                    <div className="text-xs text-caixa-gray">Urgência</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-caixa-black">{idea.criterios.alcance}%</div>
-                    <div className="text-xs text-caixa-gray">Alcance</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-caixa-black">{idea.criterios.inovacao}%</div>
-                    <div className="text-xs text-caixa-gray">Inovação</div>
-                  </div>
+                {/* Score IA com Breakdown */}
+                <div className="mb-4">
+                  <ScoreBreakdown
+                    criterios={idea.criterios}
+                    scoreIA={idea.scoreIA}
+                    prioridade={idea.prioridade}
+                  />
                 </div>
 
                 {/* Informações Adicionais */}
@@ -401,12 +339,12 @@ const RankingPage: React.FC = () => {
                     <button className="px-4 py-2 text-sm font-semibold text-caixa-blue border border-caixa-blue rounded-caixa hover:bg-caixa-blue hover:text-caixa-white transition-colors duration-200">
                       Votar
                     </button>
-                                       <button 
-                     onClick={() => navigate(`/ideia/${idea.id}`)}
-                     className="px-4 py-2 text-sm font-semibold text-caixa-gray border border-gray-300 rounded-caixa hover:bg-gray-50 transition-colors duration-200"
-                   >
-                     Detalhes
-                   </button>
+                    <button 
+                      onClick={() => navigate(`/ideia/${idea.id}`)}
+                      className="px-4 py-2 text-sm font-semibold text-caixa-gray border border-gray-300 rounded-caixa hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      Detalhes
+                    </button>
                     <button className="px-4 py-2 text-sm font-semibold bg-caixa-orange text-caixa-white rounded-caixa hover:bg-orange-600 transition-colors duration-200">
                       Implementar
                     </button>

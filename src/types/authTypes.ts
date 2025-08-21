@@ -1,13 +1,11 @@
 export interface User {
-  id: string;
+  user_id?: number;
   matricula: string;
   nome: string;
   email: string;
-  cargo: string;
-  unidade: string;
-  tipo: 'funcionario' | 'gestor' | 'admin';
-  status: 'ativo' | 'inativo' | 'pendente';
-  dataCadastro: string;
+  cargo?: string;
+  unidade?: string;
+  status?: string;
 }
 
 export interface LoginCredentials {
@@ -15,26 +13,11 @@ export interface LoginCredentials {
   senha: string;
 }
 
-export interface RegisterData {
-  matricula: string;
-  nome: string;
-  email: string;
-  cargo: string;
-  unidade: string;
-  senha: string;
-  confirmarSenha: string;
-}
-
-export interface AuthState {
+export interface AuthContextType {
   user: User | null;
-  isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-}
-
-export interface AuthContextType extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<boolean>;
   logout: () => void;
   clearError: () => void;
 }

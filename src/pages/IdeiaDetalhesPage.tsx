@@ -1,23 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Comments from '../components/Comments';
+import { experimentService } from '../services/experimentService';
+import { useToast } from '../contexts/ToastContext';
+import ScoreBreakdown from '../components/ScoreBreakdown';
 import { 
   ArrowLeft, 
   ThumbsUp, 
   MessageCircle, 
   Share2, 
   Zap, 
-  Target, 
-  Clock, 
-  Users, 
-  DollarSign,
   TrendingUp,
   CheckCircle,
   AlertTriangle,
   Star,
-  Lightbulb
+  Lightbulb,
+  Brain,
+  Loader2
 } from 'lucide-react';
 
 interface IdeiaDetalhes {
@@ -33,7 +34,7 @@ interface IdeiaDetalhes {
     email: string;
   };
   apoios: number;
-  status: 'em-votacao' | 'aprovado' | 'rejeitado' | 'implementado';
+  status: 'aprovado' | 'rejeitado' | 'implementado';
   dataCriacao: string;
   dataAtualizacao: string;
   impacto: string;
@@ -89,116 +90,164 @@ interface IdeiaDetalhes {
 const IdeiaDetalhesPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [ideia, setIdeia] = useState<IdeiaDetalhes>({
-    id: '1',
-    titulo: 'Sistema de IA para Detecção de Fraudes em Tempo Real',
-    descricao: 'Implementação de sistema de inteligência artificial que analisa transações em tempo real para detectar padrões suspeitos e prevenir fraudes, reduzindo perdas em até 80%.',
-    categoria: 'tecnologia',
-    autor: 'Maria Silva',
-    autorInfo: {
-      nome: 'Maria Silva',
-      cargo: 'Analista de Sistemas',
-      unidade: 'GEINA',
-      email: 'maria.silva@caixa.gov.br'
-    },
-    apoios: 45,
-    status: 'em-votacao',
-    dataCriacao: '2024-01-15',
-    dataAtualizacao: '2024-01-20',
-    impacto: 'critico',
-    viabilidade: 'alta',
-    scoreIA: 94.5,
-    prioridade: 'alta',
-    criterios: {
-      impacto: 95,
-      viabilidade: 85,
-      urgencia: 90,
-      alcance: 88,
-      inovacao: 92
-    },
-    tags: ['IA', 'Segurança', 'Fraude', 'Tempo Real', 'Machine Learning'],
-    tempoEstimado: '6 meses',
-    recursosNecessarios: 'Equipe de 8 pessoas, R$ 2.5M',
-    equipe: '8 pessoas',
-    prazo: '6 meses',
-    detalhes: {
-      problema: 'A CAIXA enfrenta desafios significativos com fraudes em transações digitais, resultando em perdas financeiras e comprometimento da confiança dos clientes. O sistema atual de detecção é reativo e não consegue identificar padrões complexos de fraude em tempo real.',
-      solucao: 'Desenvolvimento de um sistema de IA que utiliza machine learning para analisar transações em tempo real, identificando padrões suspeitos e bloqueando automaticamente transações fraudulentas antes que sejam concluídas.',
-      beneficios: 'Redução de 80% nas perdas por fraude, melhoria na experiência do cliente, aumento da confiança na plataforma digital, economia de R$ 15M anuais.',
-      riscos: 'Falsos positivos podem afetar transações legítimas, necessidade de treinamento da equipe, dependência de dados de qualidade.',
-      alternativas: 'Sistema baseado em regras tradicionais (menos eficaz), terceirização da solução (mais custoso), implementação gradual por fases.',
-      metricas: 'Taxa de detecção de fraudes, taxa de falsos positivos, tempo de resposta, ROI, satisfação do cliente.'
-    },
-    resumoIA: {
-      analise: 'Esta ideia demonstra alto potencial de impacto e viabilidade técnica. A combinação de IA e análise em tempo real é uma solução inovadora para um problema crítico da organização.',
-      pontosFortes: [
-        'Alto impacto financeiro (economia de R$ 15M/ano)',
-        'Tecnologia comprovada e escalável',
-        'ROI positivo em menos de 6 meses',
-        'Alinhamento com estratégia de segurança digital'
-      ],
-      pontosFracos: [
-        'Investimento inicial significativo',
-        'Complexidade técnica elevada',
-        'Risco de falsos positivos',
-        'Dependência de dados de qualidade'
-      ],
-      recomendacoes: [
-        'Implementar em fases, começando com um piloto',
-        'Investir em treinamento da equipe',
-        'Estabelecer métricas claras de sucesso',
-        'Criar processo de revisão de falsos positivos'
-      ],
-      probabilidadeSucesso: 85,
-      tempoRetorno: '6 meses',
-      impactoFinanceiro: 'R$ 15M/ano'
-    },
-    comentarios: [
-      {
-        id: '1',
-        content: 'Excelente ideia! Isso resolveria muitos problemas que enfrentamos diariamente com fraudes.',
-        author: 'João Santos',
-        authorAvatar: 'JS',
-        date: '2024-01-18T10:30:00Z',
-        likes: 12,
-        replies: [],
-        isLiked: false
-      },
-      {
-        id: '2',
-        content: 'Concordo com a implementação em fases. Podemos começar com um projeto piloto em uma região específica.',
-        author: 'Ana Costa',
-        authorAvatar: 'AC',
-        date: '2024-01-19T14:20:00Z',
-        likes: 8,
-        replies: [
+  const { showToast } = useToast();
+  const [ideia, setIdeia] = useState<IdeiaDetalhes | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'detalhes' | 'ia' | 'comentarios'>('detalhes');
+  const [aiAnalysis, setAiAnalysis] = useState<{
+    Resumo: string;
+    PontosFortes: string;
+    PontosAtencao: string;
+    Recomendacoes: string;
+  } | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      loadIdeia();
+    }
+  }, [id]);
+
+  const loadIdeia = async () => {
+    try {
+      setIsLoading(true);
+      const experiment = await experimentService.getExperimentById(parseInt(id!));
+      
+      // Usar scores calculados pela IA no backend
+      const scoreIA = experiment.score_ia || 50.0;
+      const prioridade = experiment.prioridade_ia || 'baixa';
+      const categoria = experiment.categoria_ia || 'outros';
+      const tags = experiment.tags_ia ? experiment.tags_ia.split(', ') : ['Inovação'];
+
+      // Converter experimento para o formato de detalhes da ideia
+      const convertedIdeia: IdeiaDetalhes = {
+        id: experiment.id.toString(),
+        titulo: experiment.nome_experimento,
+        descricao: experiment.descricao,
+        categoria,
+        autor: experiment.criador_nome || experiment.proponente_nome || 'Usuário',
+        autorInfo: {
+          nome: experiment.criador_nome || experiment.proponente_nome || 'Usuário',
+          cargo: 'Colaborador', // TODO: Adicionar campo no backend
+          unidade: experiment.unidade_gestora,
+          email: 'usuario@caixa.gov.br' // TODO: Adicionar campo no backend
+        },
+        apoios: Math.floor(Math.random() * 50) + 1, // TODO: Implementar sistema real de apoios
+        status: 'aprovado',
+        dataCriacao: experiment.data_inicio || new Date().toISOString().split('T')[0],
+        dataAtualizacao: experiment.data_fim || new Date().toISOString().split('T')[0],
+        impacto: experiment.volume_impacto?.toLowerCase() || 'medio',
+        viabilidade: (experiment.horizonte_inovacao === 'H1' ? 'alta' : 
+                    experiment.horizonte_inovacao === 'H2' ? 'media' : 'baixa') as 'alta' | 'media' | 'baixa',
+        scoreIA,
+        prioridade: prioridade as 'alta' | 'media' | 'baixa',
+        criterios: {
+          impacto: experiment.score_impacto || 50.0,
+          viabilidade: experiment.score_viabilidade || 50.0,
+          urgencia: experiment.score_urgencia || 50.0,
+          alcance: experiment.score_alcance || 50.0,
+          inovacao: experiment.score_inovacao || 50.0
+        },
+        tags,
+        tempoEstimado: experiment.horizonte_inovacao === 'H1' ? '3 meses' : 
+                      experiment.horizonte_inovacao === 'H2' ? '6 meses' : '12 meses',
+        recursosNecessarios: `Equipe de ${experiment.time_membros?.length || 1} pessoas`,
+        equipe: `${experiment.time_membros?.length || 1} pessoas`,
+        prazo: experiment.horizonte_inovacao === 'H1' ? '3 meses' : 
+               experiment.horizonte_inovacao === 'H2' ? '6 meses' : '12 meses',
+        detalhes: {
+          problema: experiment.desafio || 'Problema não especificado',
+          solucao: experiment.descricao || 'Solução não especificada',
+          beneficios: experiment.resultados_esperados || 'Benefícios não especificados',
+          riscos: experiment.riscos?.map(r => r.descricao_risco).join(', ') || 'Riscos não especificados',
+          alternativas: 'Alternativas não especificadas', // TODO: Adicionar campo no backend
+          metricas: experiment.metricas_kpis || 'Métricas não especificadas'
+        },
+        resumoIA: {
+          analise: `Esta ideia demonstra ${experiment.volume_impacto?.toLowerCase() === 'alto' ? 'alto' : 'médio'} potencial de impacto e ${experiment.horizonte_inovacao === 'H1' ? 'alta' : 'média'} viabilidade técnica.`,
+          pontosFortes: [
+            experiment.volume_impacto?.toLowerCase() === 'alto' ? 'Alto impacto financeiro' : 'Impacto moderado mas significativo',
+            experiment.horizonte_inovacao === 'H1' ? 'Implementação rápida (H1)' : 'Prazo adequado para desenvolvimento',
+            experiment.time_membros && experiment.time_membros.length > 0 ? 'Equipe já definida' : 'Flexibilidade na formação da equipe',
+            experiment.metricas_kpis && experiment.metricas_kpis.length > 30 ? 'Métricas bem definidas' : 'Foco em resultados mensuráveis'
+          ],
+          pontosFracos: [
+            experiment.riscos && experiment.riscos.length > 0 ? 'Riscos identificados que precisam de mitigação' : 'Necessidade de análise de riscos',
+            experiment.horizonte_inovacao === 'H3' ? 'Prazo longo de implementação' : 'Complexidade técnica moderada',
+            experiment.time_membros && experiment.time_membros.length === 0 ? 'Equipe ainda não definida' : 'Dependência de recursos externos',
+            'Necessidade de investimento inicial'
+          ],
+          recomendacoes: [
+            'Implementar em fases, começando com um piloto',
+            'Investir em treinamento da equipe',
+            'Estabelecer métricas claras de sucesso',
+            'Criar processo de acompanhamento contínuo'
+          ],
+          probabilidadeSucesso: scoreIA,
+          tempoRetorno: experiment.horizonte_inovacao === 'H1' ? '3 meses' : 
+                       experiment.horizonte_inovacao === 'H2' ? '6 meses' : '12 meses',
+          impactoFinanceiro: `Equipe de ${experiment.time_membros?.length || 1} pessoas`
+        },
+        comentarios: [
           {
-            id: '2.1',
-            content: 'Ótima sugestão! Qual região você sugere para o piloto?',
-            author: 'Maria Silva',
-            authorAvatar: 'MS',
-            date: '2024-01-19T15:00:00Z',
-            likes: 3,
-            replies: []
+            id: '1',
+            content: 'Excelente ideia! Isso resolveria muitos problemas que enfrentamos diariamente.',
+            author: 'João Santos',
+            authorAvatar: 'JS',
+            date: '2024-01-18T10:30:00Z',
+            likes: 12,
+            replies: [],
+            isLiked: false
+          },
+          {
+            id: '2',
+            content: 'Concordo com a implementação em fases. Podemos começar com um projeto piloto.',
+            author: 'Ana Costa',
+            authorAvatar: 'AC',
+            date: '2024-01-19T14:20:00Z',
+            likes: 8,
+            replies: [
+              {
+                id: '2.1',
+                content: 'Ótima sugestão! Qual região você sugere para o piloto?',
+                author: 'Maria Silva',
+                authorAvatar: 'MS',
+                date: '2024-01-19T15:00:00Z',
+                likes: 3,
+                replies: []
+              }
+            ],
+            isLiked: true
           }
         ],
-        isLiked: true
-      }
-    ],
-    userApoiou: false
-  });
+        userApoiou: false
+      };
 
-  const [activeTab, setActiveTab] = useState<'detalhes' | 'ia' | 'comentarios'>('detalhes');
+      setIdeia(convertedIdeia);
+    } catch (error) {
+      console.error('Erro ao carregar ideia:', error);
+      showToast('Erro ao carregar detalhes da ideia. Tente novamente.', 'error', 5000);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
 
   const handleApoiar = () => {
-    setIdeia(prev => ({
+    if (!ideia) return;
+    
+    setIdeia(prev => prev ? {
       ...prev,
       apoios: prev.userApoiou ? prev.apoios - 1 : prev.apoios + 1,
       userApoiou: !prev.userApoiou
-    }));
+    } : null);
   };
 
   const handleAddComment = (content: string) => {
+    if (!ideia) return;
+    
     const newComment = {
       id: Date.now().toString(),
       content,
@@ -210,24 +259,28 @@ const IdeiaDetalhesPage: React.FC = () => {
       isLiked: false
     };
     
-    setIdeia(prev => ({
+    setIdeia(prev => prev ? {
       ...prev,
       comentarios: [newComment, ...prev.comentarios]
-    }));
+    } : null);
   };
 
   const handleLikeComment = (commentId: string) => {
-    setIdeia(prev => ({
+    if (!ideia) return;
+    
+    setIdeia(prev => prev ? {
       ...prev,
       comentarios: prev.comentarios.map(comment => 
         comment.id === commentId 
           ? { ...comment, likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1, isLiked: !comment.isLiked }
           : comment
       )
-    }));
+    } : null);
   };
 
   const handleReply = (commentId: string, content: string) => {
+    if (!ideia) return;
+    
     const newReply = {
       id: `${commentId}.${Date.now()}`,
       content,
@@ -238,20 +291,50 @@ const IdeiaDetalhesPage: React.FC = () => {
       replies: []
     };
 
-    setIdeia(prev => ({
+    setIdeia(prev => prev ? {
       ...prev,
       comentarios: prev.comentarios.map(comment => 
         comment.id === commentId 
           ? { ...comment, replies: [...comment.replies, newReply] }
           : comment
       )
-    }));
+    } : null);
+  };
+
+  const performAIAnalysis = async () => {
+    try {
+      setAnalyzing(true);
+      setAnalysisError(null);
+      
+      const API_BASE_URL = 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}/experiments/${id}/ai-analysis`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro na análise de IA');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.analysis) {
+        setAiAnalysis(data.analysis);
+      } else {
+        throw new Error('Resposta inválida da análise');
+      }
+    } catch (err) {
+      setAnalysisError('Erro ao realizar análise de IA');
+      console.error(err);
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'em-votacao':
-        return 'bg-blue-100 text-blue-800';
       case 'aprovado':
         return 'bg-green-100 text-green-800';
       case 'rejeitado':
@@ -265,8 +348,6 @@ const IdeiaDetalhesPage: React.FC = () => {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'em-votacao':
-        return 'Em Votação';
       case 'aprovado':
         return 'Aprovado';
       case 'rejeitado':
@@ -290,6 +371,42 @@ const IdeiaDetalhesPage: React.FC = () => {
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-caixa-blue mx-auto mb-4"></div>
+              <p className="text-caixa-gray">Carregando detalhes da ideia...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!ideia) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-caixa-black mb-2">Ideia não encontrada</h2>
+            <p className="text-caixa-gray mb-4">A ideia que você está procurando não existe ou foi removida.</p>
+            <button
+              onClick={() => navigate('/ranking')}
+              className="btn-primary"
+            >
+              Voltar ao Ranking
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -457,15 +574,9 @@ const IdeiaDetalhesPage: React.FC = () => {
               </Card>
 
               <Card>
-                <h3 className="text-lg font-semibold text-caixa-black mb-4">Critérios IA</h3>
-                <div className="space-y-3">
-                  {Object.entries(ideia.criterios).map(([criterio, valor]) => (
-                    <div key={criterio} className="flex items-center justify-between">
-                      <span className="text-caixa-gray capitalize">{criterio}:</span>
-                      <span className="font-semibold text-caixa-black">{valor}%</span>
-                    </div>
-                  ))}
-                </div>
+                <ScoreBreakdown
+                  criterios={ideia.criterios}
+                />
               </Card>
 
               <Card>
@@ -483,74 +594,136 @@ const IdeiaDetalhesPage: React.FC = () => {
         )}
 
         {activeTab === 'ia' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <h3 className="text-lg font-semibold text-caixa-black mb-4">Análise da IA</h3>
-              <p className="text-caixa-gray mb-4">{ideia.resumoIA.analise}</p>
-              
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="text-center p-3 bg-green-50 rounded-caixa">
-                  <div className="text-2xl font-bold text-green-600">{ideia.resumoIA.probabilidadeSucesso}%</div>
-                  <div className="text-sm text-green-700">Probabilidade de Sucesso</div>
+          <div>
+            {/* Header da análise de IA */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-caixa-black flex items-center">
+                    <Brain className="w-5 h-5 mr-2 text-blue-600" />
+                    Análise de IA
+                  </h3>
+                  <p className="text-caixa-gray mt-1">
+                    Análise detalhada do experimento usando inteligência artificial
+                  </p>
                 </div>
-                <div className="text-center p-3 bg-blue-50 rounded-caixa">
-                  <div className="text-2xl font-bold text-blue-600">{ideia.resumoIA.tempoRetorno}</div>
-                  <div className="text-sm text-blue-700">Tempo de Retorno</div>
-                </div>
+                
+                {!aiAnalysis && !analyzing && (
+                  <button
+                    onClick={performAIAnalysis}
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                  >
+                    <Brain className="w-4 h-4 mr-2" />
+                    Realizar Análise
+                  </button>
+                )}
               </div>
-              
-              <div className="text-center p-3 bg-purple-50 rounded-caixa">
-                <div className="text-2xl font-bold text-purple-600">{ideia.resumoIA.impactoFinanceiro}</div>
-                <div className="text-sm text-purple-700">Impacto Financeiro Anual</div>
-              </div>
-            </Card>
-
-            <div className="space-y-6">
-              <Card>
-                <h3 className="text-lg font-semibold text-caixa-black mb-4 flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
-                  Pontos Fortes
-                </h3>
-                <ul className="space-y-2">
-                  {ideia.resumoIA.pontosFortes.map((ponto, index) => (
-                    <li key={index} className="flex items-start">
-                      <div className="w-2 h-2 bg-green-600 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                      <span className="text-caixa-gray">{ponto}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-
-              <Card>
-                <h3 className="text-lg font-semibold text-caixa-black mb-4 flex items-center">
-                  <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
-                  Pontos de Atenção
-                </h3>
-                <ul className="space-y-2">
-                  {ideia.resumoIA.pontosFracos.map((ponto, index) => (
-                    <li key={index} className="flex items-start">
-                      <div className="w-2 h-2 bg-yellow-600 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                      <span className="text-caixa-gray">{ponto}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-
-              <Card>
-                <h3 className="text-lg font-semibold text-caixa-black mb-4 flex items-center">
-                  <TrendingUp className="w-5 h-5 text-caixa-blue mr-2" />
-                  Recomendações
-                </h3>
-                <ul className="space-y-2">
-                  {ideia.resumoIA.recomendacoes.map((recomendacao, index) => (
-                    <li key={index} className="flex items-start">
-                      <div className="w-2 h-2 bg-caixa-blue rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                      <span className="text-caixa-gray">{recomendacao}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
             </div>
+
+            {/* Estado de análise em andamento */}
+            {analyzing && (
+              <Card>
+                <div className="text-center py-12">
+                  <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-blue-600" />
+                  <h3 className="text-lg font-medium text-caixa-black mb-2">
+                    Analisando experimento...
+                  </h3>
+                  <p className="text-caixa-gray">
+                    A IA está analisando o conteúdo do experimento. Isso pode levar alguns segundos.
+                  </p>
+                </div>
+              </Card>
+            )}
+
+            {/* Erro na análise */}
+            {analysisError && (
+              <Card>
+                <div className="text-center py-12">
+                  <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-red-600" />
+                  <h3 className="text-lg font-medium text-caixa-black mb-2">
+                    Erro na análise
+                  </h3>
+                  <p className="text-caixa-gray mb-6">{analysisError}</p>
+                  <button
+                    onClick={performAIAnalysis}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Tentar Novamente
+                  </button>
+                </div>
+              </Card>
+            )}
+
+            {/* Análise de IA realizada */}
+            {aiAnalysis && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Resumo */}
+                <Card>
+                  <div className="flex items-center mb-4">
+                    <Brain className="h-5 w-5 mr-2 text-blue-600" />
+                    <h3 className="text-lg font-semibold text-caixa-black">Resumo Executivo</h3>
+                  </div>
+                  <p className="text-caixa-gray leading-relaxed whitespace-pre-line">
+                    {aiAnalysis.Resumo}
+                  </p>
+                </Card>
+
+                {/* Pontos Fortes */}
+                <Card>
+                  <div className="flex items-center mb-4">
+                    <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                    <h3 className="text-lg font-semibold text-caixa-black">Pontos Fortes</h3>
+                  </div>
+                  <div className="text-caixa-gray leading-relaxed whitespace-pre-line">
+                    {aiAnalysis.PontosFortes}
+                  </div>
+                </Card>
+
+                {/* Pontos de Atenção */}
+                <Card>
+                  <div className="flex items-center mb-4">
+                    <AlertTriangle className="h-5 w-5 mr-2 text-yellow-600" />
+                    <h3 className="text-lg font-semibold text-caixa-black">Pontos de Atenção</h3>
+                  </div>
+                  <div className="text-caixa-gray leading-relaxed whitespace-pre-line">
+                    {aiAnalysis.PontosAtencao}
+                  </div>
+                </Card>
+
+                {/* Recomendações */}
+                <Card>
+                  <div className="flex items-center mb-4">
+                    <TrendingUp className="h-5 w-5 mr-2 text-purple-600" />
+                    <h3 className="text-lg font-semibold text-caixa-black">Recomendações</h3>
+                  </div>
+                  <div className="text-caixa-gray leading-relaxed whitespace-pre-line">
+                    {aiAnalysis.Recomendacoes}
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* Estado inicial - sem análise */}
+            {!aiAnalysis && !analyzing && !analysisError && (
+              <Card>
+                <div className="text-center py-12">
+                  <Brain className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-medium text-caixa-black mb-2">
+                    Análise de IA não realizada
+                  </h3>
+                  <p className="text-caixa-gray mb-6">
+                    Clique no botão "Realizar Análise" para obter uma análise detalhada do experimento usando inteligência artificial.
+                  </p>
+                  <button
+                    onClick={performAIAnalysis}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    <Brain className="h-4 w-4 mr-2 inline" />
+                    Realizar Análise
+                  </button>
+                </div>
+              </Card>
+            )}
           </div>
         )}
 
