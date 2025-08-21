@@ -6,6 +6,7 @@ export interface User {
   unidade_departamento: string;
   matricula: string;
   status: boolean;
+  role?: 'gestor' | 'funcionario' | string;
 }
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -44,7 +45,7 @@ class UserService {
       const response = await this.makeRequest<{
         error?: string;
         users?: User[];
-      }>('/auth/debug-connection');
+      }>('/auth/debug-db');
       
       if (response.error) {
         throw new Error(response.error);
@@ -55,6 +56,14 @@ class UserService {
       console.error('Erro ao buscar usuários:', error);
       throw error;
     }
+  }
+
+  async approveUser(userId: number, approverId: number): Promise<{ success: boolean; message: string }>{
+    const res = await this.makeRequest<{ success: boolean; message: string }>(`/auth/approve-user?approver_id=${approverId}`, {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId })
+    });
+    return res;
   }
 }
 

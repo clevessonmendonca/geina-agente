@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
+import { useAuth } from '../contexts/AuthContext';
 import Card from '../components/Card';
 import Select from '../components/Select';
 import { dashboardService, type DashboardData } from '../services/dashboardService';
@@ -40,6 +41,7 @@ interface DashboardMetric {
 
 
 const DashboardPage: React.FC = () => {
+  const { user } = useAuth();
   const [timeRange, setTimeRange] = useState('30dias');
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -260,6 +262,11 @@ const DashboardPage: React.FC = () => {
       <Header />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {user?.role !== 'gestor' && (
+          <div className="mb-6 p-3 bg-yellow-50 text-yellow-800 rounded-caixa">
+            Acesso restrito: apenas gestores visualizam métricas completas.
+          </div>
+        )}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>

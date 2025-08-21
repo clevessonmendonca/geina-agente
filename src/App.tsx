@@ -9,14 +9,19 @@ import NovaIdeiaPage from './pages/NovaIdeiaPage';
 import RelatarProblemaPage from './pages/RelatarProblemaPage';
 import IdeiaDetalhesPage from './pages/IdeiaDetalhesPage';
 import ProfilePage from './pages/ProfilePage';
+import GestorAprovacoesPage from './pages/GestorAprovacoesPage';
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ProtectedRoute: React.FC<{ children: React.ReactNode, requireGestor?: boolean }> = ({ children, requireGestor = false }) => {
   const { user } = useAuth();
-  
+  console.log(user);
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-  
+
+  if (requireGestor && user.role !== 'gestor') {
+    return <Navigate to="/ranking" replace />;
+  }
+
   return <>{children}</>;
 };
 
@@ -40,7 +45,7 @@ const AppContent: React.FC = () => {
       <Route 
         path="/dashboard" 
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requireGestor>
             <DashboardPage />
           </ProtectedRoute>
         } 
@@ -76,6 +81,14 @@ const AppContent: React.FC = () => {
             <NovaIdeiaPage />
           </ProtectedRoute>
         } 
+      />
+      <Route
+        path="/gestao/aprovacoes"
+        element={
+          <ProtectedRoute requireGestor>
+            <GestorAprovacoesPage />
+          </ProtectedRoute>
+        }
       />
       <Route 
         path="/" 

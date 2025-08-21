@@ -6,6 +6,7 @@ export interface User {
   cargo?: string;
   unidade?: string;
   genero?: 'feminino' | 'masculino' | 'nao_informar';
+  role?: 'gestor' | 'funcionario' | string;
   status?: string;
 }
 

@@ -17,6 +17,7 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
   const navigationItems = [
     { label: 'Ranking IA', path: '/ranking', icon: 'trophy' },
     { label: 'Dashboard', path: '/dashboard', icon: 'chart' },
+    { label: 'Aprovações', path: '/gestao/aprovacoes', icon: 'check' },
     { label: 'Nova Ideia', path: '/nova-ideia', icon: 'plus' },
     { label: 'Relatar Problema', path: '/relatar-problema', icon: 'alert' }
   ];
@@ -47,6 +48,12 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
         );
+      case 'check':
+        return (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        );
       default:
         return null;
     }
@@ -75,7 +82,9 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
-            {navigationItems.map((item) => (
+            {navigationItems
+              .filter((item) => item.path !== '/gestao/aprovacoes' || user?.role === 'gestor')
+              .map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -184,7 +193,9 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-caixa-blue-light">
             <nav className="flex flex-col space-y-2">
-              {navigationItems.map((item) => (
+              {navigationItems
+                .filter((item) => item.path !== '/gestao/aprovacoes' || user?.role === 'gestor')
+                .map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}

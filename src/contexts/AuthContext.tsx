@@ -63,8 +63,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('hacktoon_user', JSON.stringify(data.usuario));
         
         // Toast de sucesso
+        const roleSuffix = data.usuario.role ? ` • ${data.usuario.role}` : '';
         const incentive = data.usuario.genero === 'feminino' ? ' Obrigada por impulsionar a inovação feminina! 💜' : '';
-        showToast(`Bem-vindo(a), ${data.usuario.nome}!${incentive}`, 'success', 3000);
+        showToast(`Bem-vindo(a), ${data.usuario.nome}${roleSuffix}!${incentive}`, 'success', 3000);
         
         return true;
       } else {
