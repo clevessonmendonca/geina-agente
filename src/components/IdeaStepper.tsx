@@ -6,7 +6,6 @@ import Input from './Input';
 import Textarea from './Textarea';
 import Select from './Select';
 import AIFeedbackCard from './AIFeedbackCard';
-import ValidationHint from './ValidationHint';
 import UserSelector from './UserSelector';
 import LabelWithInfo from './LabelWithInfo';
 import FormReview from './FormReview';
@@ -69,7 +68,7 @@ interface IdeaStepperProps {
   isCreating?: boolean;
 }
 
-const IdeaStepper: React.FC<IdeaStepperProps> = ({ titulo, descricao, onComplete, isCreating = false }) => {
+const IdeaStepper: React.FC<IdeaStepperProps> = ({ onComplete, isCreating = false }) => {
   const navigate = useNavigate();
   const { validateField, updateFormData, getFieldValidation, isValidating } = useFormValidation();
   const [currentStep, setCurrentStep] = useState(0);
@@ -138,10 +137,17 @@ const IdeaStepper: React.FC<IdeaStepperProps> = ({ titulo, descricao, onComplete
     },
     { 
       id: 6, 
-      title: 'Revisão', 
-      description: 'Confirmação final', 
+      title: 'Assinatura', 
+      description: 'Assinatura do gestor da unidade', 
       icon: '6',
-      details: 'Revisão completa de todas as informações fornecidas antes do envio final da proposta de experimento.'
+      details: 'Assinatura do gestor da unidade para acompanhamento da proposta de experimento.'
+    },
+    { 
+      id: 7, 
+      title: 'Revisão', 
+      description: 'Revisão final do formulário', 
+      icon: '7',
+      details: 'Revisão completa de todos os dados preenchidos antes da submissão final do experimento.'
     }
   ];
 
@@ -166,8 +172,16 @@ const IdeaStepper: React.FC<IdeaStepperProps> = ({ titulo, descricao, onComplete
     { value: 'Crítico', label: 'Crítico' }
   ];
 
-  const handleInputChange = (field: keyof StepperFormData, value: any) => {
+  const handleInputChange = (field: keyof StepperFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Atualizar dados no contexto de validação
+    updateFormData(field, value);
+    
+    // Validar o campo com IA usando setTimeout para evitar chamar durante o render
+    setTimeout(() => {
+      validateField(field, value);
+    }, 0);
   };
 
   const handleStepEdit = (step: number) => {
@@ -798,8 +812,6 @@ const IdeaStepper: React.FC<IdeaStepperProps> = ({ titulo, descricao, onComplete
             <FormReview
               formData={formData}
               onEdit={handleStepEdit}
-              onGeneratePDF={handleGeneratePDF}
-              isGeneratingPDF={isGeneratingPDF}
             />
           </div>
         );
@@ -874,17 +886,30 @@ const IdeaStepper: React.FC<IdeaStepperProps> = ({ titulo, descricao, onComplete
             </button>
             
             {isLastStep ? (
-              <button
-                onClick={handleSubmit}
-                disabled={!canProceed() || isCreating}
-                className={`px-6 py-3 rounded-caixa-lg font-semibold transition-colors duration-200 ${
-                  canProceed() && !isCreating
-                    ? 'btn-primary'
-                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {isCreating ? 'Criando Experimento...' : 'Enviar Ideia'}
-              </button>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleSubmit}
+                  disabled={!canProceed() || isCreating}
+                  className={`px-6 py-3 rounded-caixa-lg font-semibold transition-colors duration-200 ${
+                    canProceed() && !isCreating
+                      ? 'btn-primary'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {isCreating ? 'Criando Experimento...' : 'Enviar Ideia'}
+                </button>
+                <button
+                  onClick={handleGeneratePDF}
+                  disabled={isGeneratingPDF || isCreating}
+                  className={`px-6 py-3 rounded-caixa-lg font-semibold transition-colors duration-200 ${
+                    !isGeneratingPDF && !isCreating
+                      ? 'bg-caixa-orange text-white hover:bg-orange-600'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {isGeneratingPDF ? 'Gerando PDF...' : 'Gerar PDF'}
+                </button>
+              </div>
             ) : (
               <button
                 onClick={handleNext}

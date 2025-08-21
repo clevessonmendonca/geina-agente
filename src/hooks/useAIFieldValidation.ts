@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useFormValidation } from '../contexts/FormValidationContext';
 import { useToast } from '../contexts/ToastContext';
 
@@ -27,6 +27,7 @@ export const useAIFieldValidation = ({
   const [skippedValidation, setSkippedValidation] = useState(false);
   const [lastValidationTime, setLastValidationTime] = useState<number>(0);
   const [timeout, setTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [pendingToast, setPendingToast] = useState<{ message: string; type: 'info' | 'success' | 'warning' | 'error' } | null>(null);
 
   // Verifica se pode fazer nova validação
   const canValidate = useCallback(() => {
@@ -40,14 +41,17 @@ export const useAIFieldValidation = ({
     if (value && value.length >= minLength && !isApproved && canValidate()) {
       // Verifica se houve mudança real no conteúdo
       if (value.trim() !== lastValidatedValue.trim()) {
-        showToast(`IA analisando ${fieldName}...`, 'info');
+        // Usar window.setTimeout para evitar chamar showToast durante o render
+        window.setTimeout(() => {
+          showToast(`IA analisando ${fieldName}...`, 'info');
+        }, 0);
         updateFormData(fieldName, value);
         validateField(backendFieldName, value);
         setLastValidationTime(Date.now());
         setLastValidatedValue(value);
       } else {
         setSkippedValidation(true);
-        setTimeout(() => setSkippedValidation(false), 3000);
+        window.setTimeout(() => setSkippedValidation(false), 3000);
       }
     }
   }, [fieldName, backendFieldName, minLength, isApproved, canValidate, lastValidatedValue, updateFormData, validateField, showToast]);
@@ -62,12 +66,12 @@ export const useAIFieldValidation = ({
       clearTimeout(timeout);
     }
     
-    const newTimeout = setTimeout(() => {
+    const newTimeout = window.setTimeout(() => {
       setIsTyping(false);
       validateFieldValue(value);
     }, debounceMs);
     
-    setTimeout(newTimeout);
+    setTimeout(newTimeout as any);
   }, [timeout, debounceMs, validateFieldValue]);
 
   // Handler de blur
@@ -75,14 +79,17 @@ export const useAIFieldValidation = ({
     const value = e.target.value;
     if (value && value.length >= minLength && !isApproved && canValidate()) {
       if (value.trim() !== lastValidatedValue.trim()) {
-        showToast(`IA analisando ${fieldName}...`, 'info');
+        // Usar window.setTimeout para evitar chamar showToast durante o render
+        window.setTimeout(() => {
+          showToast(`IA analisando ${fieldName}...`, 'info');
+        }, 0);
         updateFormData(fieldName, value);
         validateField(backendFieldName, value);
         setLastValidationTime(Date.now());
         setLastValidatedValue(value);
       } else {
         setSkippedValidation(true);
-        setTimeout(() => setSkippedValidation(false), 3000);
+        window.setTimeout(() => setSkippedValidation(false), 3000);
       }
     }
   }, [fieldName, backendFieldName, minLength, isApproved, canValidate, lastValidatedValue, updateFormData, validateField, showToast]);
@@ -94,7 +101,10 @@ export const useAIFieldValidation = ({
       setValue(fieldName, validation.suggestions[0].example);
     }
     setIsApproved(true);
-    showToast(`${fieldName} aprovado e otimizado!`, 'success');
+    // Usar window.setTimeout para evitar chamar showToast durante o render
+    window.setTimeout(() => {
+      showToast(`${fieldName} aprovado e otimizado!`, 'success');
+    }, 0);
   }, [fieldName, backendFieldName, getFieldValidation, showToast]);
 
   // Rejeitar sugestão
@@ -108,7 +118,10 @@ export const useAIFieldValidation = ({
       setTimeout(null);
     }
     setIsTyping(false);
-    showToast(`Validações reativadas para ${fieldName}`, 'info');
+    // Usar window.setTimeout para evitar chamar showToast durante o render
+    window.setTimeout(() => {
+      showToast(`Validações reativadas para ${fieldName}`, 'info');
+    }, 0);
   }, [fieldName, backendFieldName, clearValidation, showToast, timeout]);
 
   // Cleanup

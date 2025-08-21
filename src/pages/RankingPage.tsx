@@ -68,7 +68,7 @@ const RankingPage: React.FC = () => {
           descricao: exp.descricao || 'Descrição não especificada',
           categoria,
           autor: exp.criador_nome || 'Usuário',
-          apoios: Math.floor(Math.random() * 50) + 1, // TODO: Implementar sistema real de apoios
+          apoios: exp.apoios || 0,
           status: (exp.status_experimento || 'em_triagem') as 'em_triagem' | 'em_execucao' | 'aprovada' | 'rejeitada' | 'implementada' | 'cancelada',
           dataCriacao: exp.data_inicio || new Date().toISOString().split('T')[0],
           impacto: exp.volume_impacto?.toLowerCase() || 'medio',
@@ -354,7 +354,28 @@ const RankingPage: React.FC = () => {
                   </div>
                   
                   <div className="flex space-x-2">
-                    <button className="px-4 py-2 text-sm font-semibold text-caixa-blue border border-caixa-blue rounded-caixa hover:bg-caixa-blue hover:text-caixa-white transition-colors duration-200">
+                    <button 
+                      onClick={async () => {
+                        try {
+                          const result = await experimentService.supportExperiment(parseInt(idea.id));
+                          if (result.success) {
+                            // Atualizar a lista de ideias com o novo número de apoios
+                            setRankedIdeas(prevIdeas => 
+                              prevIdeas.map(prevIdea => 
+                                prevIdea.id === idea.id 
+                                  ? { ...prevIdea, apoios: result.total_apoios }
+                                  : prevIdea
+                              )
+                            );
+                            showToast('Apoio registrado com sucesso!', 'success');
+                          }
+                        } catch (error) {
+                          console.error('Erro ao apoiar:', error);
+                          showToast('Erro ao registrar apoio. Tente novamente.', 'error');
+                        }
+                      }}
+                      className="px-4 py-2 text-sm font-semibold text-caixa-blue border border-caixa-blue rounded-caixa hover:bg-caixa-blue hover:text-caixa-white transition-colors duration-200"
+                    >
                       Apoiar
                     </button>
                     <button 

@@ -106,6 +106,12 @@ const NovaIdeiaPage: React.FC = () => {
     }
   }, [watchDescricao, updateFormData]);
 
+  useEffect(() => {
+    if (watchDescricao) {
+      updateFormData('descricao', watchDescricao);
+    }
+  }, [watchDescricao, updateFormData]);
+
   const validateIdeaWithWatson = async (payload: BasicIdeaForm): Promise<ValidatorResponse> => {
     try {
       setIsValidating(true);
